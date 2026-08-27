@@ -34,12 +34,12 @@ useEffect(() => {
 }, []);
 
   const loadSkills = async () => {
-    const res = await api.get("/skills");
+    const res = await api.get("/api/skills");
     setSkills(res.data);
   };
 
   const loadGap = async () => {
-    const res = await api.get("/skills/gap");
+    const res = await api.get("/api/skills/gap");
     setGap(res.data);
   };
 
@@ -52,7 +52,7 @@ useEffect(() => {
 
     if (!name) return alert("Enter skill name");
 
-    await api.post("/skills", {
+    await api.post("/api/skills", {
       name,
       currentLevel,
       targetLevel
@@ -68,7 +68,7 @@ useEffect(() => {
 
   const deleteSkill = async (id: number) => {
 
-    await api.delete(`/skills/${id}`);
+    await api.delete(`/api/skills/${id}`);
     loadSkills();
     loadGap();
 
@@ -76,7 +76,7 @@ useEffect(() => {
 
   const levelUp = async (skill: Skill) => {
 
-    await api.put(`/skills/${skill.id}`, {
+    await api.put(`/api/skills/${skill.id}`, {
       currentLevel: skill.currentLevel + 1
     });
 
