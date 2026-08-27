@@ -12,7 +12,7 @@ export default function RegisterPage() {
 
   const register = async () => {
 
-    await api.post("/auth/register",{
+    await api.post("/api/auth/register",{
       name,
       email,
       password
