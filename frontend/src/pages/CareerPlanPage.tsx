@@ -29,7 +29,7 @@ export default function CareerPlanPage() {
 
     try {
 
-      const res = await api.post("/ai/career-plan", {
+      const res = await api.post("/api/ai/career-plan", {
         role,
         jobDescription
       });
