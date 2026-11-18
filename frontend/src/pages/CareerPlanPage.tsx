@@ -16,10 +16,11 @@ export default function CareerPlanPage() {
       setError("Please enter your target job role.");
       return;
     }
+
     if (role.trim().length > 100) {
-  setError("Target role cannot exceed 100 characters.");
-  return;
-}
+      setError("Target role cannot exceed 100 characters.");
+      return;
+    }
 
     const skillList = skills
       .split(",")
@@ -30,19 +31,21 @@ export default function CareerPlanPage() {
       setError("Please enter at least one existing skill.");
       return;
     }
-    if (skillList.length > 30) {
-  setError("You can enter a maximum of 30 skills.");
-  return;
-}
 
-if (skillList.some((skill) => skill.length > 50)) {
-  setError("Each skill cannot exceed 50 characters.");
-  return;
-}
-if (jobDescription.length > 5000) {
-  setError("Job description cannot exceed 5000 characters.");
-  return;
-}
+    if (skillList.length > 30) {
+      setError("You can enter a maximum of 30 skills.");
+      return;
+    }
+
+    if (skillList.some((skill) => skill.length > 50)) {
+      setError("Each skill cannot exceed 50 characters.");
+      return;
+    }
+
+    if (jobDescription.length > 5000) {
+      setError("Job description cannot exceed 5000 characters.");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -54,7 +57,6 @@ if (jobDescription.length > 5000) {
         skills: skillList,
         jobDescription
       });
-
 
       setResult(res.data?.aiPlan || {});
     } catch (error: any) {
@@ -71,13 +73,11 @@ if (jobDescription.length > 5000) {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-
       <h2 className="text-2xl font-bold mb-4">
         AI Career Planner
       </h2>
 
       <div className="space-y-4">
-
         <input
           className="border p-3 rounded w-full"
           placeholder="Target Role (e.g. Software Developer)"
@@ -118,12 +118,10 @@ if (jobDescription.length > 5000) {
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           )}
         </button>
-
       </div>
 
       {result && (
         <div className="grid md:grid-cols-2 gap-6 mt-8">
-
           <Card
             title="Required Skills"
             items={result.requiredSkills || []}
@@ -136,59 +134,37 @@ if (jobDescription.length > 5000) {
 
           <Card
             title="Learning Roadmap"
-            items={
-              result.learningRoadmap?.map((r: any) =>
-                `${r?.skill || ""} - ${r?.duration || ""}`
-              ) || []
-            }
+            items={result.learningRoadmap || []}
           />
 
           <Card
             title="Courses"
-            items={
-              result.courses?.map((c: any) =>
-                `${c?.skill || ""} - ${c?.course || ""}`
-              ) || []
-            }
+            items={result.courses || []}
           />
 
           <Card
             title="YouTube Tutorials"
-            items={
-              result.youtubeTutorials?.map((y: any) =>
-                `${y?.skill || ""} - ${y?.tutorial || ""}`
-              ) || []
-            }
+            items={result.youtubeTutorials || []}
           />
 
           <Card
             title="Projects"
-            items={
-              result.projects?.map((p: any) =>
-                `${p?.skill || ""}: ${p?.project || ""}`
-              ) || []
-            }
+            items={result.projects || []}
           />
 
           <Card
             title="Tools"
-            items={[
-              ...new Set(
-                (result.tools || []).map((t: any) =>
-                  typeof t === "string" ? t : t.tool
-                )
-              )
-            ] as string[]}
+            items={result.tools || []}
           />
 
-          <div className="bg-white shadow-md rounded-xl p-5">
-            <h3 className="font-semibold mb-2">Timeline</h3>
-            <p>{result.timeline || "Not available"}</p>
-          </div>
-
+          {result.timeline && (
+            <div className="bg-white shadow-md rounded-xl p-5">
+              <h3 className="font-semibold mb-2">Timeline</h3>
+              <p>{result.timeline}</p>
+            </div>
+          )}
         </div>
       )}
-
     </div>
   );
 }

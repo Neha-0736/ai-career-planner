@@ -1,3 +1,4 @@
+
 import { Request, Response } from "express";
 import { generateCareerPlan } from "../services/ai.service";
 
@@ -46,9 +47,7 @@ export const getAICareerPlan = async (req: Request, res: Response) => {
     const skills = inputSkills
       .map((skill: any) => {
         const name =
-          typeof skill === "string"
-            ? skill
-            : skill?.name;
+          typeof skill === "string" ? skill : skill?.name;
 
         if (typeof name !== "string") {
           return null;
@@ -62,8 +61,9 @@ export const getAICareerPlan = async (req: Request, res: Response) => {
 
         return { name: trimmedName };
       })
-      .filter((skill: { name: string } | null): skill is { name: string } =>
-        skill !== null
+      .filter(
+        (skill: { name: string } | null): skill is { name: string } =>
+          skill !== null
       );
 
     if (skills.length === 0) {
@@ -72,28 +72,57 @@ export const getAICareerPlan = async (req: Request, res: Response) => {
       });
     }
 
+    // Remove duplicate user skills, ignoring capitalization
+    const uniqueSkills = Array.from(
+      new Map(
+        skills.map(skill => [skill.name.toLowerCase(), skill])
+      ).values()
+    );
+
     // Generate AI career plan
     const aiPlan = await generateCareerPlan(
       role.trim(),
       jobDescription?.trim() || "",
-      skills
+      uniqueSkills
     );
 
-    // Calculate missing skills
-    const userSkillNames = skills.map(skill =>
-      skill.name.toLowerCase()
+    // Normalize required skills and preserve all existing user skills
+    const requiredSkills = Array.isArray(aiPlan.requiredSkills)
+      ? aiPlan.requiredSkills
+      : [];
+
+    const requiredSkillMap = new Map<string, string>();
+
+    requiredSkills.forEach((skill: string) => {
+      if (typeof skill === "string" && skill.trim()) {
+        requiredSkillMap.set(skill.trim().toLowerCase(), skill.trim());
+      }
+    });
+
+    // Add user skills that AI did not include
+    uniqueSkills.forEach(skill => {
+      const key = skill.name.toLowerCase();
+
+      if (!requiredSkillMap.has(key)) {
+        requiredSkillMap.set(key, skill.name);
+      }
+    });
+
+    // Final required skills list
+    aiPlan.requiredSkills = Array.from(requiredSkillMap.values());
+
+    // Calculate missing skills using case-insensitive comparison
+    const userSkillNames = new Set(
+      uniqueSkills.map(skill => skill.name.toLowerCase())
     );
 
-    const missingSkills = aiPlan.requiredSkills.filter(
-      (requiredSkill: string) =>
-        !userSkillNames.includes(requiredSkill.toLowerCase().trim())
+    aiPlan.missingSkills = aiPlan.requiredSkills.filter(
+      (skill: string) => !userSkillNames.has(skill.toLowerCase().trim())
     );
-
-    aiPlan.missingSkills = missingSkills;
 
     return res.status(200).json({
       role: role.trim(),
-      userSkills: skills,
+      userSkills: uniqueSkills,
       aiPlan
     });
 
@@ -105,4 +134,3 @@ export const getAICareerPlan = async (req: Request, res: Response) => {
     });
   }
 };
-
