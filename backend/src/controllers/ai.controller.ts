@@ -1,74 +1,108 @@
 import { Request, Response } from "express";
-import { prisma } from "../Database/prisma";
 import { generateCareerPlan } from "../services/ai.service";
 
-export const getAICareerPlan = async (req: any, res: Response) => {
-
+export const getAICareerPlan = async (req: Request, res: Response) => {
   try {
+    const { role, jobDescription, skills: inputSkills } = req.body;
 
-    const { role, jobDescription } = req.body;
-
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: "User not authenticated"
+    // Validate target role
+    if (
+      typeof role !== "string" ||
+      !role.trim() ||
+      role.trim().length > 100
+    ) {
+      return res.status(400).json({
+        message: "Please provide a valid target job role (maximum 100 characters)"
       });
     }
 
-    // Get user skills from DB
-    const skills = await prisma.skill.findMany({
-      where: {
-        userId: userId
-      }
-    });
+    // Validate job description
+    if (
+      jobDescription !== undefined &&
+      typeof jobDescription !== "string"
+    ) {
+      return res.status(400).json({
+        message: "Invalid job description"
+      });
+    }
+
+    if (jobDescription && jobDescription.length > 5000) {
+      return res.status(400).json({
+        message: "Job description must not exceed 5000 characters"
+      });
+    }
+
+    // Validate skills
+    if (
+      !Array.isArray(inputSkills) ||
+      inputSkills.length === 0 ||
+      inputSkills.length > 30
+    ) {
+      return res.status(400).json({
+        message: "Please provide between 1 and 30 skills"
+      });
+    }
+
+    const skills = inputSkills
+      .map((skill: any) => {
+        const name =
+          typeof skill === "string"
+            ? skill
+            : skill?.name;
+
+        if (typeof name !== "string") {
+          return null;
+        }
+
+        const trimmedName = name.trim();
+
+        if (!trimmedName || trimmedName.length > 50) {
+          return null;
+        }
+
+        return { name: trimmedName };
+      })
+      .filter((skill: { name: string } | null): skill is { name: string } =>
+        skill !== null
+      );
 
     if (skills.length === 0) {
       return res.status(400).json({
-        message: "Add skills before generating AI plan"
+        message: "Please provide valid skill names"
       });
     }
 
-    // Call AI service
+    // Generate AI career plan
     const aiPlan = await generateCareerPlan(
-      role,
-      jobDescription,
+      role.trim(),
+      jobDescription?.trim() || "",
       skills
     );
 
-    // Get user skill names
-const userSkillNames = skills.map((s: any) =>
-  s.name.toLowerCase()
-);
+    // Calculate missing skills
+    const userSkillNames = skills.map(skill =>
+      skill.name.toLowerCase()
+    );
 
-// Calculate missing skills
-const missingSkills = aiPlan.requiredSkills.filter((reqSkill: string) => {
+    const missingSkills = aiPlan.requiredSkills.filter(
+      (requiredSkill: string) =>
+        !userSkillNames.includes(requiredSkill.toLowerCase().trim())
+    );
 
-  const req = reqSkill.toLowerCase();
+    aiPlan.missingSkills = missingSkills;
 
-  return !userSkillNames.some((userSkill) =>
-    req.includes(userSkill)
-  );
-
-});
-
-// update aiPlan
-aiPlan.missingSkills = missingSkills;
-
-    res.json({
-      role,
+    return res.status(200).json({
+      role: role.trim(),
       userSkills: skills,
       aiPlan
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    console.error("AI CAREER PLAN ERROR:", error);
 
-    console.error("AI ERROR:", error);
-
-    res.status(500).json({
-      message: error.message
+    return res.status(502).json({
+      message: "Unable to generate career plan. Please try again later."
     });
-
   }
-
 };
+

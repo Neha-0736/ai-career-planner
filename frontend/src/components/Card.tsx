@@ -1,54 +1,61 @@
+
 type Props = {
   title: string;
   items: any[];
 };
 
 export default function Card({ title, items }: Props) {
+  const formatItem = (item: any): string | null => {
+    if (!item) return null;
+
+    if (typeof item === "string") {
+      return item;
+    }
+
+    if (typeof item !== "object") {
+      return String(item);
+    }
+
+    if (item.skill && item.level && item.duration) {
+      return `${item.skill} - ${item.level} - ${item.duration}`;
+    }
+
+    if (item.skill && item.course) {
+      return `${item.skill}: ${item.course}`;
+    }
+
+    if (item.skill && item.tutorial) {
+      return `${item.skill}: ${item.tutorial}`;
+    }
+
+    if (item.skill && item.project) {
+      return `${item.skill}: ${item.project}`;
+    }
+
+    if (item.tool) {
+      return String(item.tool);
+    }
+
+    return null;
+  };
 
   return (
-
     <div className="bg-white shadow-md rounded-xl p-5">
-
       <h3 className="font-semibold mb-3">{title}</h3>
 
-      <ul className="list-disc pl-5 space-y-1">
+      {Array.isArray(items) && items.length > 0 ? (
+        <ul className="list-disc pl-5 space-y-1">
+          {items.map((item, index) => {
+            const text = formatItem(item);
 
-        {items?.map((item:any, index:number) => {
+            if (!text) return null;
 
-          if (!item) return null;
-
-          if (typeof item === "string") {
-            return <li key={index}>{item}</li>;
-          }
-
-          if (item.skill && item.level && item.duration) {
-            return <li key={index}>{item.skill} - {item.level} - {item.duration}</li>;
-          }
-
-          if (item.skill && item.course) {
-            return <li key={index}>{item.skill}: {item.course}</li>;
-          }
-
-          if (item.skill && item.tutorial) {
-            return <li key={index}>{item.skill}: {item.tutorial}</li>;
-          }
-
-          if (item.skill && item.project) {
-            return <li key={index}>{item.skill}: {item.project}</li>;
-          }
-
-          if (item.tool) {
-            return <li key={index}>{item.tool}</li>;
-          }
-
-          return null;
-
-        })}
-
-      </ul>
-
+            return <li key={index}>{text}</li>;
+          })}
+        </ul>
+      ) : (
+        <p className="text-gray-500">No information available.</p>
+      )}
     </div>
-
   );
-
 }

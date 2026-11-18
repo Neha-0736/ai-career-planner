@@ -1,33 +1,57 @@
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { rateLimit } from "express-rate-limit";
 
-import authRoutes from "./routes/auth.routes";
-import skillRoutes from "./routes/skill.routes";
-import userRoutes from "./routes/user.routes";
 import aiRoutes from "./routes/ai.routes";
-import careerRoutes from "./routes/career.routes";
-
 import { errorHandler } from "./middleware/error.middleware";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Render runs the backend behind a reverse proxy
+app.set("trust proxy", 1);
 
-app.use("/api/auth", authRoutes);
-app.use("/api/skills", skillRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/ai", aiRoutes);
-app.use("/api/career", careerRoutes);
+// Allow the deployed frontend and local development frontend
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173"
+].filter((origin): origin is string => Boolean(origin));
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    }
+  })
+);
+
+app.use(express.json({ limit: "100kb" }));
+
+// Limit AI requests to protect OpenRouter API usage
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    message: "Too many career plan requests. Please try again after 15 minutes."
+  }
+});
 
 app.get("/", (req, res) => {
   res.json({
     message: "Skill Gap Planner API Running"
   });
 });
+
+app.use("/api/ai", aiLimiter, aiRoutes);
 
 app.use(errorHandler);
 
